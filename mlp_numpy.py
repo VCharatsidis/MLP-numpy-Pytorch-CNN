@@ -59,8 +59,8 @@ class MLP(object):
     l1 = LinearModule(n_hidden[0], n_classes)
     self.layers.append(l1)
 
-    s = SoftMaxModule()
-    self.layers.append(s)
+    # s = SoftMaxModule()
+    # self.layers.append(s)
 
     ########################
     # END OF YOUR CODE    #

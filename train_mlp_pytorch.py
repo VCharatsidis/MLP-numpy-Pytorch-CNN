@@ -9,13 +9,16 @@ from __future__ import print_function
 import argparse
 import numpy as np
 import os
+import torch
 from mlp_pytorch import MLP
+import torch.nn as nn
 import cifar10_utils
+from torch.autograd import Variable
 
 # Default constants
 DNN_HIDDEN_UNITS_DEFAULT = '100'
 LEARNING_RATE_DEFAULT = 2e-3
-MAX_STEPS_DEFAULT = 1
+MAX_STEPS_DEFAULT = 10000
 BATCH_SIZE_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 100
 
@@ -45,7 +48,33 @@ def accuracy(predictions, targets):
   ########################
   # PUT YOUR CODE HERE  #
   #######################
-  raise NotImplementedError
+  # classes = 10
+  #
+  # predictions = predictions.detach().numpy()
+  #
+  # predictions = np.argmax(predictions, 1)
+  # print(predictions)
+  # print(targets)
+  # predictions_one_hot = list()
+  # for value in predictions:
+  #     letter = [0 for _ in range(10)]
+  #     letter[value] = 1
+  #     predictions_one_hot.append(letter)
+  #
+  # predictions_one_hot = np.array(predictions_one_hot)
+  #
+  # print(targets.shape)
+  # input()
+  # result = predictions_one_hot == targets
+  # sum = np.sum(result)
+  # accuracy = sum / float(targets.shape[0])
+
+  predictions = predictions.detach().numpy()
+  preds = np.argmax(predictions, 1)
+  result = preds == targets
+  sum = np.sum(result)
+  accuracy = sum / float(targets.shape[0])
+
   ########################
   # END OF YOUR CODE    #
   #######################
@@ -75,7 +104,60 @@ def train():
   ########################
   # PUT YOUR CODE HERE  #
   #######################
-  raise NotImplementedError
+  classes = 10
+  input_dim = 3 * 32 * 32
+
+  X_train_raw, y_train_raw, X_test_raw, y_test_raw = cifar10_utils.load_cifar10(cifar10_utils.CIFAR10_FOLDER)
+  X_train, y_train, X_test, y_test = cifar10_utils.preprocess_cifar10_data(X_train_raw, y_train_raw, X_test_raw,
+                                                                           y_test_raw)
+
+  model = MLP(input_dim, dnn_hidden_units, classes)
+  print(model)
+
+  model_params = list(model.parameters())
+  optimizer = torch.optim.Adam(model_params, lr=LEARNING_RATE_DEFAULT)
+  loss_fn = nn.CrossEntropyLoss()
+
+  model.train()
+  train_losses = []
+  valid_losses = []
+  for iteration in range(MAX_STEPS_DEFAULT):
+      ids = np.random.choice(X_train.shape[0], size=BATCH_SIZE_DEFAULT, replace=False)
+      X_train_batch = X_train[ids, :]
+      y_train_batch = y_train[ids]
+
+      X_train_batch = np.reshape(X_train_batch, (BATCH_SIZE_DEFAULT, -1))
+
+      X_train_batch = Variable(torch.FloatTensor(X_train_batch))
+
+      output = model.forward(X_train_batch)
+
+      y_train_batch = Variable(torch.LongTensor(y_train_batch))
+      loss = loss_fn(output, y_train_batch)
+      loss.backward()
+      optimizer.step()
+
+      train_losses.append(loss.item())
+
+      if iteration % EVAL_FREQ_DEFAULT == 0:
+          ids = np.random.choice(X_test.shape[0], size=BATCH_SIZE_DEFAULT, replace=False)
+          X_test_batch = X_test[ids, :]
+          y_test_batch = y_test[ids]
+
+          X_test_batch = np.reshape(X_test_batch, (BATCH_SIZE_DEFAULT, -1))
+
+          X_test_batch = Variable(torch.FloatTensor(X_test_batch))
+
+          output = model.forward(X_test_batch)
+
+          acc = accuracy(output, y_test_batch)
+          print(acc)
+
+
+  print(train_losses[-1])
+  model.eval()
+
+
   ########################
   # END OF YOUR CODE    #
   #######################
