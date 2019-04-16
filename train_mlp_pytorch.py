@@ -18,7 +18,7 @@ from torch.autograd import Variable
 # Default constants
 DNN_HIDDEN_UNITS_DEFAULT = '100'
 LEARNING_RATE_DEFAULT = 2e-3
-MAX_STEPS_DEFAULT = 10000
+MAX_STEPS_DEFAULT = 5000
 BATCH_SIZE_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 100
 
@@ -115,13 +115,14 @@ def train():
   print(model)
 
   model_params = list(model.parameters())
-  optimizer = torch.optim.Adam(model_params, lr=LEARNING_RATE_DEFAULT)
+  optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE_DEFAULT, momentum=0.9)
   loss_fn = nn.CrossEntropyLoss()
 
-  model.train()
   train_losses = []
   valid_losses = []
+
   for iteration in range(MAX_STEPS_DEFAULT):
+      model.train()
       ids = np.random.choice(X_train.shape[0], size=BATCH_SIZE_DEFAULT, replace=False)
       X_train_batch = X_train[ids, :]
       y_train_batch = y_train[ids]
@@ -134,29 +135,41 @@ def train():
 
       y_train_batch = Variable(torch.LongTensor(y_train_batch))
       loss = loss_fn(output, y_train_batch)
+      optimizer.zero_grad()
       loss.backward()
       optimizer.step()
 
       train_losses.append(loss.item())
 
       if iteration % EVAL_FREQ_DEFAULT == 0:
-          ids = np.random.choice(X_test.shape[0], size=BATCH_SIZE_DEFAULT, replace=False)
-          X_test_batch = X_test[ids, :]
-          y_test_batch = y_test[ids]
+        model.eval()
+        total_acc = 0
+        total_loss = 0
+        for i in range(BATCH_SIZE_DEFAULT, len(X_test) + BATCH_SIZE_DEFAULT, BATCH_SIZE_DEFAULT):
+            ids = np.array(range(i - BATCH_SIZE_DEFAULT, i))
 
-          X_test_batch = np.reshape(X_test_batch, (BATCH_SIZE_DEFAULT, -1))
+            x = X_test[ids, :]
+            targets = y_test[ids]
 
-          X_test_batch = Variable(torch.FloatTensor(X_test_batch))
+            x = np.reshape(x, (BATCH_SIZE_DEFAULT, -1))
 
-          output = model.forward(X_test_batch)
+            x = Variable(torch.FloatTensor(x))
 
-          acc = accuracy(output, y_test_batch)
-          print(acc)
+            pred = model.forward(x)
+            acc = accuracy(pred, targets)
 
+            targets = Variable(torch.LongTensor(targets))
+            total_acc += acc
+            batch_loss = nn.CrossEntropyLoss()
+            calc_loss = batch_loss.forward(pred, targets)
 
-  print(train_losses[-1])
-  model.eval()
+            total_loss += calc_loss.item()
 
+        denom = len(X_test) / BATCH_SIZE_DEFAULT
+        total_acc = total_acc / denom
+        total_loss = total_loss / denom
+
+        print("total accuracy " + str(total_acc) + " total loss " + str(total_loss))
 
   ########################
   # END OF YOUR CODE    #

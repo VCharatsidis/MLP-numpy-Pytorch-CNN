@@ -41,15 +41,16 @@ class MLP(nn.Module):
     self.layers = nn.Sequential(
       nn.Linear(n_inputs, n_hidden[0]),
       nn.ReLU(),
+      nn.Linear(n_hidden[0], n_hidden[0]),
+      nn.ReLU(),
+      nn.Linear(n_hidden[0], n_hidden[0]),
+      nn.ReLU(),
+      nn.Linear(n_hidden[0], n_hidden[0]),
+      nn.ReLU(),
       nn.Linear(n_hidden[0], n_classes),
-      #nn.Softmax()
+      nn.Softmax(dim=1)
     )
 
-    # torch.nn.init.xavier_uniform(self.layers[0])
-    # self.layers[0].bias.data.fill_(0.01)
-    #
-    # torch.nn.init.xavier_uniform(self.layers[2])
-    # self.layers[1].bias.data.fill_(0.01)
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -72,7 +73,10 @@ class MLP(nn.Module):
     # PUT YOUR CODE HERE  #
     #######################
 
-    out = self.layers(x)
+    out = x
+    for layer in self.layers:
+      out = layer.forward(out)
+
     ########################
     # END OF YOUR CODE    #
     #######################

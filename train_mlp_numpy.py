@@ -92,6 +92,7 @@ def train():
 
   for iteration in range(MAX_STEPS_DEFAULT):
     ids = np.random.choice(X_train.shape[0], size=BATCH_SIZE_DEFAULT, replace=False)
+
     X_train_batch = X_train[ids, :]
     y_train_batch = y_train[ids]
 
@@ -113,11 +114,39 @@ def train():
             layer.params['weight'] -= LEARNING_RATE_DEFAULT * dw
             layer.params['bias'] -= LEARNING_RATE_DEFAULT * db.T
 
-    acc = accuracy(output, y_train_batch)
 
     if iteration % EVAL_FREQ_DEFAULT == 0:
-      print(loss)
-      print(acc)
+        total_acc = 0
+        total_loss = 0
+        for i in range(BATCH_SIZE_DEFAULT, len(X_test)+BATCH_SIZE_DEFAULT, BATCH_SIZE_DEFAULT):
+            ids = np.array(range(i-BATCH_SIZE_DEFAULT, i))
+
+            x = X_test[ids, :]
+            x = np.reshape(x, (BATCH_SIZE_DEFAULT, -1))
+            targets = y_test[ids]
+
+            pred = mlp.forward(x)
+            acc = accuracy(pred, targets)
+            total_acc += acc
+            loss = ce.forward(pred, targets)
+            total_loss += loss
+
+        denom = len(X_test) / BATCH_SIZE_DEFAULT
+        total_acc = total_acc / denom
+        total_loss = total_loss / denom
+
+        print("total accuracy "+str(total_acc)+" total loss "+str(total_loss))
+
+      # ids = np.random.choice(X_test.shape[0], size=BATCH_SIZE_DEFAULT, replace=False)
+      # X_test_batch = X_test[ids, :]
+      # y_test_batch = y_test[ids]
+      #
+      # X_test_batch = np.reshape(X_test_batch, (BATCH_SIZE_DEFAULT, -1))
+      #
+      # output = mlp.forward(X_test_batch)
+      #
+      # acc = accuracy(output, y_test_batch)
+
 
 
 
