@@ -12,6 +12,7 @@ import os
 from mlp_numpy import MLP
 from modules import CrossEntropyModule
 import cifar10_utils
+import matplotlib.pyplot as plt
 
 # Default constants
 DNN_HIDDEN_UNITS_DEFAULT = '100'
@@ -89,8 +90,10 @@ def train():
 
   mlp = MLP(input_dim, dnn_hidden_units, classes)
 
-
+  losses = []
+  accuracies = []
   for iteration in range(MAX_STEPS_DEFAULT):
+    BATCH_SIZE_DEFAULT =200
     ids = np.random.choice(X_train.shape[0], size=BATCH_SIZE_DEFAULT, replace=False)
 
     X_train_batch = X_train[ids, :]
@@ -118,6 +121,7 @@ def train():
     if iteration % EVAL_FREQ_DEFAULT == 0:
         total_acc = 0
         total_loss = 0
+        BATCH_SIZE_DEFAULT = 500
         for i in range(BATCH_SIZE_DEFAULT, len(X_test)+BATCH_SIZE_DEFAULT, BATCH_SIZE_DEFAULT):
             ids = np.array(range(i-BATCH_SIZE_DEFAULT, i))
 
@@ -135,6 +139,9 @@ def train():
         total_acc = total_acc / denom
         total_loss = total_loss / denom
 
+        accuracies.append(total_acc)
+        losses.append(total_loss)
+
         print("total accuracy "+str(total_acc)+" total loss "+str(total_loss))
 
       # ids = np.random.choice(X_test.shape[0], size=BATCH_SIZE_DEFAULT, replace=False)
@@ -146,12 +153,13 @@ def train():
       # output = mlp.forward(X_test_batch)
       #
       # acc = accuracy(output, y_test_batch)
+  plt.plot(accuracies)
+  plt.ylabel('accuracies')
+  plt.show()
 
-
-
-
-
-
+  plt.plot(losses)
+  plt.ylabel('losses')
+  plt.show()
 
   ########################
   # END OF YOUR CODE    #

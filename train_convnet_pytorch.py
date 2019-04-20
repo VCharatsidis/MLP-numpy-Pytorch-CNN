@@ -19,7 +19,7 @@ from torch.autograd import Variable
 LEARNING_RATE_DEFAULT = 1e-4
 BATCH_SIZE_DEFAULT = 32
 MAX_STEPS_DEFAULT = 5000
-EVAL_FREQ_DEFAULT = 500
+EVAL_FREQ_DEFAULT = 200
 OPTIMIZER_DEFAULT = 'ADAM'
 
 # Directory in which cifar data is saved
@@ -116,7 +116,7 @@ def train():
       model.eval()
       total_acc = 0
       total_loss = 0
-      BATCH_SIZE_DEFAULT =200
+      BATCH_SIZE_DEFAULT = 500
       for i in range(BATCH_SIZE_DEFAULT, len(X_test) + BATCH_SIZE_DEFAULT, BATCH_SIZE_DEFAULT):
         ids = np.array(range(i - BATCH_SIZE_DEFAULT, i))
 
