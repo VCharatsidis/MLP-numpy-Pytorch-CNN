@@ -38,6 +38,7 @@ class MLP(nn.Module):
     #######################
 
     super(MLP, self).__init__()
+    hlaf = int(n_hidden[0]/2)
     self.layers = nn.Sequential(
       nn.Linear(n_inputs, n_hidden[0]),
       nn.ReLU(),
@@ -45,9 +46,16 @@ class MLP(nn.Module):
       nn.ReLU(),
       nn.Linear(n_hidden[0], n_hidden[0]),
       nn.ReLU(),
-      nn.Linear(n_hidden[0], n_hidden[0]),
+      nn.Linear(n_hidden[0], hlaf),
       nn.ReLU(),
-      nn.Linear(n_hidden[0], n_classes),
+      nn.Linear(hlaf, hlaf),
+      nn.BatchNorm1d(hlaf),
+      nn.ReLU(),
+      nn.Linear(hlaf, hlaf),
+      nn.BatchNorm1d(hlaf),
+      nn.ReLU(),
+
+      nn.Linear(hlaf, n_classes),
       nn.Softmax(dim=1)
     )
 

@@ -14,13 +14,14 @@ from mlp_pytorch import MLP
 import torch.nn as nn
 import cifar10_utils
 from torch.autograd import Variable
+import matplotlib.pyplot as plt
 
 # Default constants
-DNN_HIDDEN_UNITS_DEFAULT = '100'
+DNN_HIDDEN_UNITS_DEFAULT = '1000'
 LEARNING_RATE_DEFAULT = 2e-3
-MAX_STEPS_DEFAULT = 5000
+MAX_STEPS_DEFAULT = 6000
 BATCH_SIZE_DEFAULT = 200
-EVAL_FREQ_DEFAULT = 100
+EVAL_FREQ_DEFAULT = 200
 
 # Directory in which cifar data is saved
 DATA_DIR_DEFAULT = './cifar10/cifar-10-batches-py'
@@ -48,26 +49,6 @@ def accuracy(predictions, targets):
   ########################
   # PUT YOUR CODE HERE  #
   #######################
-  # classes = 10
-  #
-  # predictions = predictions.detach().numpy()
-  #
-  # predictions = np.argmax(predictions, 1)
-  # print(predictions)
-  # print(targets)
-  # predictions_one_hot = list()
-  # for value in predictions:
-  #     letter = [0 for _ in range(10)]
-  #     letter[value] = 1
-  #     predictions_one_hot.append(letter)
-  #
-  # predictions_one_hot = np.array(predictions_one_hot)
-  #
-  # print(targets.shape)
-  # input()
-  # result = predictions_one_hot == targets
-  # sum = np.sum(result)
-  # accuracy = sum / float(targets.shape[0])
 
   predictions = predictions.detach().numpy()
   preds = np.argmax(predictions, 1)
@@ -114,12 +95,12 @@ def train():
   model = MLP(input_dim, dnn_hidden_units, classes)
   print(model)
 
-  model_params = list(model.parameters())
   optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE_DEFAULT, momentum=0.9)
+
   loss_fn = nn.CrossEntropyLoss()
 
-  train_losses = []
-  valid_losses = []
+  accuracies = []
+  losses = []
 
   for iteration in range(MAX_STEPS_DEFAULT):
       model.train()
@@ -139,12 +120,11 @@ def train():
       loss.backward()
       optimizer.step()
 
-      train_losses.append(loss.item())
-
       if iteration % EVAL_FREQ_DEFAULT == 0:
         model.eval()
         total_acc = 0
         total_loss = 0
+
         for i in range(BATCH_SIZE_DEFAULT, len(X_test) + BATCH_SIZE_DEFAULT, BATCH_SIZE_DEFAULT):
             ids = np.array(range(i - BATCH_SIZE_DEFAULT, i))
 
@@ -157,20 +137,29 @@ def train():
 
             pred = model.forward(x)
             acc = accuracy(pred, targets)
-
+            #accuracies.append(acc)
             targets = Variable(torch.LongTensor(targets))
             total_acc += acc
             batch_loss = nn.CrossEntropyLoss()
             calc_loss = batch_loss.forward(pred, targets)
-
+            #losses.append(calc_loss.item())
             total_loss += calc_loss.item()
 
         denom = len(X_test) / BATCH_SIZE_DEFAULT
         total_acc = total_acc / denom
         total_loss = total_loss / denom
+        accuracies.append(total_acc)
+        losses.append(total_loss)
 
         print("total accuracy " + str(total_acc) + " total loss " + str(total_loss))
 
+  plt.plot(accuracies)
+  plt.ylabel('accuracies')
+  plt.show()
+
+  plt.plot(losses)
+  plt.ylabel('losses')
+  plt.show()
   ########################
   # END OF YOUR CODE    #
   #######################

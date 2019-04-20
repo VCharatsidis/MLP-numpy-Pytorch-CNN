@@ -37,7 +37,10 @@ class CustomBatchNormAutograd(nn.Module):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    self.gamma = nn.Parameter(torch.ones(n_neurons), requires_grad=True)
+    self.beta = torch.nn.Parameter(torch.zeros(n_neurons), requires_grad=True)
+    self.eps = eps
+    self.n_neurons = n_neurons
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -60,7 +63,30 @@ class CustomBatchNormAutograd(nn.Module):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    if input.dim() != 2:
+       raise ValueError('expected 2D  got '+str(input.dim()))
+
+    dim1 = self.n_neurons
+    # mean
+    mu = 1./dim1 * np.sum(input, axis=0)
+
+    # mean - x
+    mu_x = input - mu
+
+    square = mu_x ** 2
+
+    # variance
+    var = 1./dim1 * np.sum(square, axis=0)
+
+    # std_dev
+    standard_dev = np.sqrt(var + self.eps)
+
+    # normalization
+    normalization = mu_x * (1./standard_dev)
+
+    # scale and shift
+    out = self.gamma * normalization + self.beta
+
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -114,7 +140,28 @@ class CustomBatchNormManualFunction(torch.autograd.Function):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    dim1 = input.shape[1]
+    # mean
+    mu = 1. / dim1 * np.sum(input, axis=0)
+
+    # mean - x
+    x_mu = input - mu
+
+    square = x_mu ** 2
+
+    # variance
+    var = 1. / dim1 * np.sum(square, axis=0)
+
+    # std_dev
+    standard_dev = np.sqrt(var + eps)
+
+    # normalization
+    normalization = x_mu * (1. / standard_dev)
+
+    # scale and shift
+    out = gamma * normalization + beta
+
+    ctx.save_for_backward(normalization, gamma, x_mu, standard_dev, var, eps)
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -142,7 +189,29 @@ class CustomBatchNormManualFunction(torch.autograd.Function):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    normalization, gamma, x_mu, standard_dev, var, eps = ctx.needs_input_grad
+
+    dim1, dim2 = grad_output.shape
+
+    grad_beta = np.sum(grad_output, axis=0)
+    grad_gamma = np.sum(grad_output * normalization, axis=0)
+    grad_normalization = grad_output * gamma
+
+    grad_x_mu = grad_normalization * (1./standard_dev)
+
+    grad_standard_dev = -1./(standard_dev ** 2) * np.sum(grad_normalization * x_mu, axis=0)
+
+    grad_var = 0.5 * 1. / np.sqrt(var+eps) * grad_standard_dev
+
+    grad_square = 1. / dim1 * np.ones((dim1, dim2)) * grad_var
+
+    grad_x1 = grad_x_mu + 2 * x_mu * grad_square
+
+    grad_mu = -1 * np.sum(grad_x1, axis=0)
+    grad_x2 = 1. / dim1 * np.ones((dim1, dim2)) * grad_mu
+
+    grad_input = grad_x1 + grad_x2
+
     ########################
     # END OF YOUR CODE    #
     #######################

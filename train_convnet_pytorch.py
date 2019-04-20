@@ -11,6 +11,9 @@ import numpy as np
 import os
 from convnet_pytorch import ConvNet
 import cifar10_utils
+import matplotlib.pyplot as plt
+import torch
+from torch.autograd import Variable
 
 # Default constants
 LEARNING_RATE_DEFAULT = 1e-4
@@ -45,7 +48,13 @@ def accuracy(predictions, targets):
   ########################
   # PUT YOUR CODE HERE  #
   #######################
-  raise NotImplementedError
+
+  predictions = predictions.detach().numpy()
+  preds = np.argmax(predictions, 1)
+  result = preds == targets
+  sum = np.sum(result)
+  accuracy = sum / float(targets.shape[0])
+
   ########################
   # END OF YOUR CODE    #
   #######################
@@ -67,7 +76,82 @@ def train():
   ########################
   # PUT YOUR CODE HERE  #
   #######################
-  raise NotImplementedError
+  classes = 10
+
+  X_train_raw, y_train_raw, X_test_raw, y_test_raw = cifar10_utils.load_cifar10(cifar10_utils.CIFAR10_FOLDER)
+  X_train, y_train, X_test, y_test = cifar10_utils.preprocess_cifar10_data(X_train_raw, y_train_raw, X_test_raw,
+                                                                           y_test_raw)
+
+  model = ConvNet(3, classes)
+  print(model)
+
+  optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE_DEFAULT)
+
+  loss_fn = torch.nn.CrossEntropyLoss()
+
+  accuracies = []
+  losses = []
+
+  for iteration in range(MAX_STEPS_DEFAULT):
+    BATCH_SIZE_DEFAULT = 32
+    model.train()
+    ids = np.random.choice(X_train.shape[0], size=BATCH_SIZE_DEFAULT, replace=False)
+    X_train_batch = X_train[ids, :]
+    y_train_batch = y_train[ids]
+
+    #X_train_batch = np.reshape(X_train_batch, (BATCH_SIZE_DEFAULT, -1))
+
+    X_train_batch = Variable(torch.FloatTensor(X_train_batch))
+
+    #print(X_train_batch.shape)
+    output = model.forward(X_train_batch)
+
+    y_train_batch = Variable(torch.LongTensor(y_train_batch))
+    loss = loss_fn(output, y_train_batch)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    if iteration % EVAL_FREQ_DEFAULT == 0:
+      model.eval()
+      total_acc = 0
+      total_loss = 0
+      BATCH_SIZE_DEFAULT =200
+      for i in range(BATCH_SIZE_DEFAULT, len(X_test) + BATCH_SIZE_DEFAULT, BATCH_SIZE_DEFAULT):
+        ids = np.array(range(i - BATCH_SIZE_DEFAULT, i))
+
+        x = X_test[ids, :]
+        targets = y_test[ids]
+
+        #x = np.reshape(x, (BATCH_SIZE_DEFAULT, -1))
+
+        x = Variable(torch.FloatTensor(x))
+        #print(x.shape)
+        pred = model.forward(x)
+        acc = accuracy(pred, targets)
+
+        targets = Variable(torch.LongTensor(targets))
+        total_acc += acc
+        batch_loss = torch.nn.CrossEntropyLoss()
+        calc_loss = batch_loss.forward(pred, targets)
+
+        total_loss += calc_loss.item()
+
+      denom = len(X_test) / BATCH_SIZE_DEFAULT
+      total_acc = total_acc / denom
+      total_loss = total_loss / denom
+      accuracies.append(total_acc)
+      losses.append(total_loss)
+
+      print("total accuracy " + str(total_acc) + " total loss " + str(total_loss))
+
+  plt.plot(accuracies)
+  plt.ylabel('accuracies')
+  plt.show()
+
+  plt.plot(losses)
+  plt.ylabel('losses')
+  plt.show()
   ########################
   # END OF YOUR CODE    #
   #######################
